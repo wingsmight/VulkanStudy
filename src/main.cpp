@@ -11,6 +11,8 @@ const unsigned int SCREEN_HEIGHT = 600;
 const char* WINDOW_TITLE = "OpenGL study";
 const int VBOS_COUNT = 1;
 const int VAOS_COUNT = 1;
+const int EBOS_COUNT = 1;
+const int INDICES_COUNT = 6;
 const int SHADER_INFO_LOG_SIZE = 512;
 
 const char* vertexShaderSource = 
@@ -117,20 +119,29 @@ int main()
     // initializing:
     // vertex input
     float vertices[] = {
-        -0.5f, -0.5f, 0.0f,
+        0.5f,  0.5f, 0.0f,
         0.5f, -0.5f, 0.0f,
-        0.0f,  0.5f, 0.0f
-    }; 
+        -0.5f, -0.5f, 0.0f,
+        -0.5f,  0.5f, 0.0f
+    };
+    unsigned int indices[INDICES_COUNT] = {
+        0, 1, 3,
+        1, 2, 3
+    };
 
-    unsigned int vbos[VBOS_COUNT] = {};
     unsigned int vaos[VAOS_COUNT] = {};
-    glGenVertexArrays(1, vaos);
+    unsigned int vbos[VBOS_COUNT] = {};
+    unsigned int ebos[EBOS_COUNT] = {};
+
+    glGenVertexArrays(VAOS_COUNT, vaos);
+    glGenBuffers(EBOS_COUNT, ebos);
     glGenBuffers(VBOS_COUNT, vbos);
 
-    glBindVertexArray(vbos[0]);
-
+    glBindVertexArray(vaos[0]);
     glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[0]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     // link vertex attributes
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
@@ -153,16 +164,17 @@ int main()
         // draw triangle
         glUseProgram(shaderProgram);
         glBindVertexArray(vaos[0]);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-
+        glDrawElements(GL_TRIANGLES, INDICES_COUNT, GL_UNSIGNED_INT, 0);
+        
         // check and call events & swap the buffer
         glfwPollEvents();
         glfwSwapBuffers(window);
     }
 
     // de-allocation
-    glDeleteVertexArrays(1, vaos);
-    glDeleteBuffers(1, vbos);
+    glDeleteVertexArrays(VAOS_COUNT, vaos);
+    glDeleteBuffers(VBOS_COUNT, vbos);
+    glDeleteBuffers(EBOS_COUNT, ebos);
     glDeleteProgram(shaderProgram);
 
 
@@ -179,5 +191,13 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     {
         glfwSetWindowShouldClose(window, true);
+    }
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    }
+    if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
+    {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 }
