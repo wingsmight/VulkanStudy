@@ -1,38 +1,18 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <wingsmight/shader.h>
 
 #include <iostream>
-
-//#define VBOS_COUNT 1
+#include <math.h>
 
 
 const unsigned int SCREEN_WIDTH = 800;
 const unsigned int SCREEN_HEIGHT = 600;
 const char* WINDOW_TITLE = "OpenGL study";
-const int VBOS_COUNT = 1;
-const int VAOS_COUNT = 1;
+const int VBOS_COUNT = 2;
+const int VAOS_COUNT = 2;
 const int EBOS_COUNT = 1;
 const int INDICES_COUNT = 6;
-const int SHADER_INFO_LOG_SIZE = 512;
-
-const char* vertexShaderSource = 
-    "#version 330 core\n"
-    "layout (location = 0) in vec3 pos;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = vec4(pos.x, pos.y, pos.z, 1.0);\n"
-    "}\0";
-const char* fragmentShaderSource =
-    "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "void main()\n"
-    "{\n"
-        "FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-    "}\n";
-
-
-char shaderInfoLog[SHADER_INFO_LOG_SIZE];
-int isShaderCompiled;
 
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
@@ -69,69 +49,24 @@ int main()
         return EXIT_FAILURE;
     }
 
-    //vertex shader
-    unsigned int vertexShader;
-    vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-
-    // validate vertex shader in compile-time
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &isShaderCompiled);
-    if (!isShaderCompiled)
-    {
-        glGetShaderInfoLog(vertexShader, SHADER_INFO_LOG_SIZE, NULL, shaderInfoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << shaderInfoLog << std::endl;
-    }
-
-    // fragment shader
-    unsigned int fragmentShader;
-    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-
-    // validate fragment shader in compile-time
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &isShaderCompiled);
-    if (!isShaderCompiled)
-    {
-        glGetShaderInfoLog(fragmentShader, SHADER_INFO_LOG_SIZE, NULL, shaderInfoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << shaderInfoLog << std::endl;
-    }
-
-    // link shaders
-    unsigned int shaderProgram;
-    shaderProgram = glCreateProgram();
-
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    // validate linking shaders int compile-time
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &isShaderCompiled);
-    if (!isShaderCompiled)
-    {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, shaderInfoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::LINKING_FAILED\n" << shaderInfoLog << std::endl;
-    }
-
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader); 
+    Shader shader("/Users/user/Documents/VulkanStudy/shaders/simple.vs", "/Users/user/Documents/VulkanStudy/shaders/simple.fs");
 
     // initializing:
     // vertex input
-    float vertices[] = {
-        0.5f,  0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        -0.5f, -0.5f, 0.0f,
-        -0.5f,  0.5f, 0.0f
+    float triangleVertices[] = {
+        -1.0f, -1.0f, 0.0f,
+        -1.0f, 1.0f, 0.0f,
+        1.0f, -1.0f, 0.0f,
+        1.0f, 1.0f, 0.0f,
     };
     unsigned int indices[INDICES_COUNT] = {
-        0, 1, 3,
-        1, 2, 3
+        0, 1, 2,
+        1, 2, 3,
     };
 
     unsigned int vaos[VAOS_COUNT] = {};
-    unsigned int vbos[VBOS_COUNT] = {};
     unsigned int ebos[EBOS_COUNT] = {};
+    unsigned int vbos[VBOS_COUNT] = {};
 
     glGenVertexArrays(VAOS_COUNT, vaos);
     glGenBuffers(EBOS_COUNT, ebos);
@@ -139,7 +74,7 @@ int main()
 
     glBindVertexArray(vaos[0]);
     glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[0]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
@@ -150,7 +85,7 @@ int main()
     // unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
-
+    
     // rendering loop
     while (!glfwWindowShouldClose(window))
     {
@@ -162,10 +97,10 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
 
         // draw triangle
-        glUseProgram(shaderProgram);
-        glBindVertexArray(vaos[0]);
+        shader.use();
+        glBindVertexArray(ebos[0]);
         glDrawElements(GL_TRIANGLES, INDICES_COUNT, GL_UNSIGNED_INT, 0);
-        
+
         // check and call events & swap the buffer
         glfwPollEvents();
         glfwSwapBuffers(window);
@@ -173,10 +108,8 @@ int main()
 
     // de-allocation
     glDeleteVertexArrays(VAOS_COUNT, vaos);
-    glDeleteBuffers(VBOS_COUNT, vbos);
     glDeleteBuffers(EBOS_COUNT, ebos);
-    glDeleteProgram(shaderProgram);
-
+    glDeleteBuffers(VBOS_COUNT, vbos);
 
     glfwTerminate();
     return EXIT_SUCCESS;
