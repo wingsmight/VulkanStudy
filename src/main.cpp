@@ -1,9 +1,16 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <wingsmight/shader.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 #include <iostream>
+#include <filesystem>
+#include <stdlib.h>
 #include <math.h>
+#include <string>
+
+using namespace std;
 
 
 const unsigned int SCREEN_WIDTH = 800;
@@ -17,6 +24,7 @@ const int INDICES_COUNT = 6;
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
+unsigned int createTexture(const char* imageFileName);
 
 
 int main()
@@ -53,14 +61,15 @@ int main()
 
     // initializing:
     // vertex input
-    float triangleVertices[] = {
-        -1.0f, -1.0f, 0.0f,
-        -1.0f, 1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f,
-        1.0f, 1.0f, 0.0f,
+    float vertices[] = {
+        // positions          // colors           // texture coords
+         0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
+         0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
+        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left 
     };
     unsigned int indices[INDICES_COUNT] = {
-        0, 1, 2,
+        0, 1, 3,
         1, 2, 3,
     };
 
@@ -74,18 +83,30 @@ int main()
 
     glBindVertexArray(vaos[0]);
     glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[0]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     // link vertex attributes
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
     // unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
-    
+
+    // // create texture IDs
+    unsigned int texture0 = createTexture("/Users/user/Documents/VulkanStudy/textures/moon.jpg");
+    unsigned int texture1 = createTexture("/Users/user/Documents/VulkanStudy/textures/englishText.png");
+
+    shader.use(); // don't forget to activate the shader before setting uniforms!  
+    glUniform1i(glGetUniformLocation(shader.id, "textureSampler0"), 0); // set it manually
+    shader.setInt("textureSampler1", 1); // or with shader class
+
     // rendering loop
     while (!glfwWindowShouldClose(window))
     {
@@ -96,14 +117,20 @@ int main()
         glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        // bind textures on corresponding texture units
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture0);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture1);
+
         // draw triangle
         shader.use();
         glBindVertexArray(ebos[0]);
         glDrawElements(GL_TRIANGLES, INDICES_COUNT, GL_UNSIGNED_INT, 0);
 
         // check and call events & swap the buffer
-        glfwPollEvents();
         glfwSwapBuffers(window);
+        glfwPollEvents();
     }
 
     // de-allocation
@@ -133,4 +160,46 @@ void processInput(GLFWwindow* window)
     {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
+}
+unsigned int createTexture(const char* imageFileName)
+{
+    string imageFile(imageFileName);
+
+    // create texture ID
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    stbi_set_flip_vertically_on_load(true);
+
+    // load image 0
+    int imageWidth, imageHeight, nrChannels;
+    unsigned char* imageData = stbi_load(std::filesystem::absolute(imageFileName).c_str(), &imageWidth, &imageHeight, &nrChannels, 0);
+    if (imageData)
+    {
+        GLint textureImageFormat;
+        if (imageFile.find(".png") != string::npos)
+        {
+            textureImageFormat = GL_RGBA;
+        }
+        else
+        {
+            textureImageFormat = GL_RGB;
+        }
+        glTexImage2D(GL_TEXTURE_2D, 0, textureImageFormat, imageWidth, imageHeight, 0, textureImageFormat, GL_UNSIGNED_BYTE, imageData);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(imageData);
+
+    return texture;
 }

@@ -9,6 +9,7 @@ LIBRARIES := -lglfw3 -lvulkan -ldl -lpthread
 EXECUTABLE := main
 FRAMEWORKS := -framework Cocoa -framework OpenGL -framework IOKit
 SUBFOLDERSRCS := src/*/*.cpp
+APPNAME := main
 
 all:./$(EXECUTABLE)
 
@@ -16,4 +17,5 @@ run: all
 	./$(EXECUTABLE)
 
 $(EXECUTABLE):$(SRC)/*.cpp
-	$(CXX) $(CXX_FLAGS) -I $(INCLUDE) -L $(LIB) $^ $(SUBFOLDERSRCS) -o $(EXECUTABLE).app $(LIBRARIES) $(FRAMEWORKS)
+	$(CXX) $(CXX_FLAGS) -I $(INCLUDE) -L $(LIB) $^ $(SUBFOLDERSRCS) -o $(APPNAME).app $(LIBRARIES) $(FRAMEWORKS) ;
+	open $(APPNAME).app
