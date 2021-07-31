@@ -1,7 +1,6 @@
 #include <wingsmight/shader.h>
 
-
-Shader::Shader(const char* vertexPath, const char* fragmentPath)
+Shader::Shader(const char *vertexPath, const char *fragmentPath)
 {
     // 1. retrieve the vertex/fragment source code from filePath
     std::string vertexCode;
@@ -11,7 +10,7 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath)
     // ensure ifstream objects can throw exceptions:
     vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
     fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-    try 
+    try
     {
         // open files
         vShaderFile.open(vertexPath);
@@ -27,12 +26,12 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath)
         vertexCode = vShaderStream.str();
         fragmentCode = fShaderStream.str();
     }
-    catch (std::ifstream::failure& e)
+    catch (std::ifstream::failure &e)
     {
         std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
     }
-    const char* vShaderCode = vertexCode.c_str();
-    const char * fShaderCode = fragmentCode.c_str();
+    const char *vShaderCode = vertexCode.c_str();
+    const char *fShaderCode = fragmentCode.c_str();
     // 2. compile shaders
     unsigned int vertex, fragment;
     // vertex shader
@@ -56,34 +55,29 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath)
     glDeleteShader(fragment);
 }
 // activate the shader
-// ------------------------------------------------------------------------
-void Shader::use() 
-{ 
-    glUseProgram(id); 
+void Shader::use()
+{
+    glUseProgram(id);
 }
 void Shader::destroy()
 {
     glDeleteProgram(id);
 }
 // utility uniform functions
-// ------------------------------------------------------------------------
 void Shader::setBool(const std::string &name, bool value) const
-{         
-    glUniform1i(glGetUniformLocation(id, name.c_str()), (int)value); 
+{
+    glUniform1i(glGetUniformLocation(id, name.c_str()), (int)value);
 }
-// ------------------------------------------------------------------------
 void Shader::setInt(const std::string &name, int value) const
-{ 
-    glUniform1i(glGetUniformLocation(id, name.c_str()), value); 
+{
+    glUniform1i(glGetUniformLocation(id, name.c_str()), value);
 }
-// ------------------------------------------------------------------------
 void Shader::setFloat(const std::string &name, float value) const
-{ 
-    glUniform1f(glGetUniformLocation(id, name.c_str()), value); 
+{
+    glUniform1f(glGetUniformLocation(id, name.c_str()), value);
 }
 
 // utility function for checking shader compilation/linking errors.
-// ------------------------------------------------------------------------
 void Shader::checkCompileErrors(unsigned int shader, std::string type)
 {
     int success;
@@ -94,7 +88,8 @@ void Shader::checkCompileErrors(unsigned int shader, std::string type)
         if (!success)
         {
             glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-            std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+            std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n"
+                      << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
         }
     }
     else
@@ -103,7 +98,8 @@ void Shader::checkCompileErrors(unsigned int shader, std::string type)
         if (!success)
         {
             glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-            std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+            std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n"
+                      << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
         }
     }
 }
